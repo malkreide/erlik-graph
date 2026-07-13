@@ -1,8 +1,10 @@
 """MCP-Adapter: registriert jeden Transform als MCP-Tool.
 
-Derselbe GraphStore wie beim FastAPI-Adapter wird befuellt, sodass ein
-LLM-Agent autonom anreichern kann und du das Ergebnis danach visuell
-inspizierst. Start (stdio):  python -m erlik_graph.adapters.mcp_server
+Der Store kommt aus create_store(). Mit ERLIK_GRAPH_BACKEND=neo4j zeigen MCP-
+und FastAPI-Adapter auf *dieselbe* Neo4j-Instanz: ein LLM-Agent reichert hier
+autonom an, du inspizierst das Ergebnis parallel im Browser. Ohne Neo4j haelt
+jeder Prozess seinen eigenen in-memory Graphen.
+Start (stdio):  python -m erlik_graph.adapters.mcp_server
 
 Eintrag fuer claude mcp / .mcp.json:
   command: python   args: ["-m", "erlik_graph.adapters.mcp_server"]
@@ -13,10 +15,10 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 import erlik_graph  # noqa: F401  (registriert alle Transforms)
-from erlik_graph.core import GraphStore, TransformSpec, all_transforms
+from erlik_graph.core import TransformSpec, all_transforms, create_store
 
 mcp = FastMCP("erlik_graph")
-STORE = GraphStore()
+STORE = create_store()
 
 
 def _make_tool(spec: TransformSpec):

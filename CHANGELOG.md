@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Shared graph backend: `Neo4jGraphStore` plus a `create_store()` factory selected via `ERLIK_GRAPH_BACKEND`. With `neo4j`, the MCP and FastAPI adapters read/write the same graph (LLM enriches, you inspect it live).
+- `BaseGraphStore` base class holding the store-agnostic `expand()` logic; `GraphStore` and `Neo4jGraphStore` share it.
+- 3 new free transforms: `domain_to_whois` (RDAP), `ipv4_to_geo` (ipwho.is), `email_to_breaches` (Have I Been Pwned, needs `HIBP_API_KEY`).
+- New entity types `organization`, `location`, `breach` with front-end colors.
+
+### Changed
+- Both adapters now build their store through `create_store()` instead of instantiating `GraphStore` directly.
+
 ## [0.1.0] - 2026-07-13
 
 ### Added

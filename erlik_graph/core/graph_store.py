@@ -1,26 +1,26 @@
 """In-Memory-Graph auf Basis von networkx.
 
-Dedupliziert Knoten ueber entity_key. Kann einen Transform ausfuehren
-und das Ergebnis direkt in den Graphen mergen. to_cytoscape() liefert
-das Format, das das Web-Frontend rendert.
+Dedupliziert Knoten ueber entity_key. Die Transform-Ausfuehrung (`expand`)
+kommt aus BaseGraphStore; hier werden nur die networkx-spezifischen Primitive
+und die Cytoscape-Serialisierung implementiert.
 
-Spaeter austauschbar gegen Neo4j: nur diese Klasse neu implementieren,
-die Adapter bleiben unveraendert.
+Fuer einen prozessuebergreifend geteilten Graphen (MCP reichert an, du
+inspizierst visuell) siehe Neo4jGraphStore und create_store().
 """
 
 from __future__ import annotations
 
 import networkx as nx
 
-from .entity import Edge, Entity, entity_key
-from .registry import get_transform
+from .base_store import BaseGraphStore
+from .entity import Edge, Entity
 
 
-class GraphStore:
+class GraphStore(BaseGraphStore):
     def __init__(self) -> None:
         self.g = nx.MultiDiGraph()
 
-    # --- Mutation -------------------------------------------------------
+    # --- Primitive ------------------------------------------------------
     def add_entity(self, entity: Entity) -> str:
         key = entity.key
         if self.g.has_node(key):
@@ -38,35 +38,11 @@ class GraphStore:
             edge.source, edge.target, label=edge.label, transform=edge.transform
         )
 
-    # --- Transform-Ausfuehrung -----------------------------------------
-    def expand(self, entity_type: str, value: str, transform_name: str) -> dict:
-        """Fuehrt einen Transform auf einer Entity aus und merged das Ergebnis.
+    def _has_node(self, key: str) -> bool:
+        return self.g.has_node(key)
 
-        Gibt die neu hinzugefuegten Knoten/Kanten zurueck (fuer inkrementelles
-        UI-Update). Der Input-Knoten wird angelegt, falls er noch fehlt.
-        """
-        spec = get_transform(transform_name)
-        if spec is None:
-            raise KeyError(f"Unbekannter Transform: {transform_name}")
-
-        source_key = self.add_entity(Entity(type=entity_type, value=value))
-        results = spec.run(value, self.g.nodes[source_key].get("properties", {}))
-
-        new_nodes, new_edges = [], []
-        for ent in results:
-            existed = self.g.has_node(ent.key)
-            self.add_entity(ent)
-            if not existed:
-                new_nodes.append(ent.to_dict())
-            edge = Edge(
-                source=source_key, target=ent.key,
-                label=ent.link_label or spec.name, transform=spec.name,
-            )
-            self.add_edge(edge)
-            new_edges.append(edge.to_dict())
-
-        return {"new_nodes": new_nodes, "new_edges": new_edges,
-                "source": source_key, "transform": transform_name}
+    def _node_properties(self, key: str) -> dict:
+        return self.g.nodes[key].get("properties", {})
 
     # --- Ausgabe --------------------------------------------------------
     def to_cytoscape(self) -> list[dict]:

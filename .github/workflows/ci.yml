@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Import check (both adapters load, all transforms register)
+        run: |
+          python -c "import erlik_graph; from erlik_graph.core import all_transforms; \
+            assert len(all_transforms()) >= 13, len(all_transforms()); \
+            print(len(all_transforms()), 'transforms registered')"
+          python -c "from erlik_graph.adapters.api_server import app; print('FastAPI adapter OK')"
+          python -c "import erlik_graph.adapters.mcp_server; print('MCP adapter OK')"
+
+      - name: Run tests
+        run: pytest -q

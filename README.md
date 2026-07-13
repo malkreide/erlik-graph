@@ -4,6 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
 ![Type](https://img.shields.io/badge/OSINT-graph-black)
+[![CI](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml)
 
 > An OSINT link-analysis graph with one shared transform core and two front-ends: a visual FastAPI + Cytoscape app **and** an MCP server for LLM-driven investigation.
 
@@ -25,7 +26,7 @@ Add a transform once, and it appears in both.
 ## Features
 
 - 🔗 **Entity/Transform/Graph** model with automatic node de-duplication
-- 🧩 **10 transforms out of the box** — DNS (A/MX/NS/TXT), certificate-transparency subdomains (crt.sh), RDAP/WHOIS, IP geolocation, HIBP breaches, Shodan services, username enumeration across 10 platforms
+- 🧩 **13 transforms out of the box** — DNS (A/MX/NS/TXT), reverse DNS, certificate-transparency subdomains (crt.sh), RDAP/WHOIS, Wayback Machine, IP geolocation, HIBP breaches, Gravatar, Shodan services, username enumeration across 10 platforms
 - 🖥️ **Visual graph** front-end (Cytoscape.js), click a node → run applicable transforms → the graph grows
 - 🤖 **MCP adapter** exposing every transform as a tool for LLM-driven OSINT
 - ♻️ **Shared core** — one `@transform` decorator, both adapters pick it up automatically
@@ -128,16 +129,22 @@ erlik_graph/
 │   └── factory.py        create_store() — picks backend from env
 ├── transforms/           the actual logic — this is where the system grows
 │   ├── dns_transforms.py
+│   ├── rdns_transforms.py
 │   ├── crtsh_transforms.py
 │   ├── whois_transforms.py
+│   ├── wayback_transforms.py
 │   ├── geo_transforms.py
 │   ├── breach_transforms.py
+│   ├── gravatar_transforms.py
 │   ├── shodan_transforms.py
 │   └── username_transforms.py
 ├── adapters/
 │   ├── api_server.py     FastAPI endpoints
 │   └── mcp_server.py     MCP tools
 └── web/index.html        Cytoscape front-end
+
+tests/                    offline pytest suite (run in CI)
+.github/workflows/ci.yml  install + import check + pytest on 3.11 / 3.12
 ```
 
 ## The Erlik Portfolio

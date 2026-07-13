@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "erlik-graph": {
+      "command": "python",
+      "args": ["-m", "erlik_graph.adapters.mcp_server"],
+      "cwd": "C:\\Users\\hayal\\OSINT",
+      "env": {
+        "SHODAN_API_KEY": ""
+      }
+    }
+  }
+}

@@ -25,16 +25,17 @@ Add a transform once, and it appears in both.
 ## Features
 
 - 🔗 **Entity/Transform/Graph** model with automatic node de-duplication
-- 🧩 **7 transforms out of the box** — DNS (A/MX/NS/TXT), certificate-transparency subdomains (crt.sh), Shodan services, username enumeration across 10 platforms
+- 🧩 **10 transforms out of the box** — DNS (A/MX/NS/TXT), certificate-transparency subdomains (crt.sh), RDAP/WHOIS, IP geolocation, HIBP breaches, Shodan services, username enumeration across 10 platforms
 - 🖥️ **Visual graph** front-end (Cytoscape.js), click a node → run applicable transforms → the graph grows
 - 🤖 **MCP adapter** exposing every transform as a tool for LLM-driven OSINT
 - ♻️ **Shared core** — one `@transform` decorator, both adapters pick it up automatically
-- 🔌 **Pluggable storage** — in-memory `networkx` today, swap for Neo4j by reimplementing one class
+- 🔌 **Pluggable storage** — in-memory `networkx` by default, or a shared **Neo4j** backend so the MCP and FastAPI adapters read/write the *same* graph (Claude enriches, you inspect it live in the browser)
 
 ## Prerequisites
 
 - Python 3.11+
-- Optional: a `SHODAN_API_KEY` for the Shodan transform
+- Optional: a `SHODAN_API_KEY` for the Shodan transform and a `HIBP_API_KEY` for the breach transform
+- Optional: a running **Neo4j** instance to share one graph across both adapters
 
 ## Installation
 
@@ -77,6 +78,28 @@ Register the server (see [.mcp.json](.mcp.json)) with your MCP client. The trans
 | Variable | Purpose | Required |
 |---|---|---|
 | `SHODAN_API_KEY` | Enables the `ipv4_to_services` transform | No (transform returns a hint if unset) |
+| `HIBP_API_KEY` | Enables the `email_to_breaches` transform (Have I Been Pwned) | No (transform returns a hint if unset) |
+| `ERLIK_GRAPH_BACKEND` | Graph backend: `memory` (default) or `neo4j` | No |
+| `NEO4J_URI` | Bolt URI when the backend is `neo4j` | Only for `neo4j` (default `bolt://localhost:7687`) |
+| `NEO4J_USER` / `NEO4J_PASSWORD` | Neo4j credentials | Only for `neo4j` |
+
+### Shared graph via Neo4j
+
+By default each process keeps its own in-memory graph, so the MCP and FastAPI adapters don't see each other's data. Point both at Neo4j to share **one** graph — the intended "Claude enriches, you inspect visually" loop:
+
+```bash
+export ERLIK_GRAPH_BACKEND=neo4j
+export NEO4J_URI=bolt://localhost:7687
+export NEO4J_USER=neo4j
+export NEO4J_PASSWORD=your-password
+
+# Adapter 1 — the LLM enriches through MCP
+python -m erlik_graph.adapters.mcp_server
+# Adapter 2 — you watch the same graph grow in the browser
+python -m uvicorn erlik_graph.adapters.api_server:app --reload
+```
+
+Swap in a different store by subclassing `BaseGraphStore` and returning it from `create_store()`.
 
 ## Adding a transform
 
@@ -96,13 +119,19 @@ def domain_to_ipv4(value: str, properties: dict) -> list[Entity]:
 
 ```
 erlik_graph/
-├── core/                 Data model, registry, graph store
+├── core/                 Data model, registry, graph stores
 │   ├── entity.py         Entity / Edge, de-dup key
 │   ├── registry.py       @transform decorator + registry
-│   └── graph_store.py    networkx store, expand(), Cytoscape export
+│   ├── base_store.py     BaseGraphStore — shared expand() logic
+│   ├── graph_store.py    in-memory networkx store
+│   ├── neo4j_store.py    shared Neo4j-backed store
+│   └── factory.py        create_store() — picks backend from env
 ├── transforms/           the actual logic — this is where the system grows
 │   ├── dns_transforms.py
 │   ├── crtsh_transforms.py
+│   ├── whois_transforms.py
+│   ├── geo_transforms.py
+│   ├── breach_transforms.py
 │   ├── shodan_transforms.py
 │   └── username_transforms.py
 ├── adapters/

@@ -13,10 +13,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 import erlik_graph  # noqa: F401  (registriert alle Transforms)
-from erlik_graph.core import GraphStore, all_transforms
+from erlik_graph.core import all_transforms, create_store
 
 app = FastAPI(title="erlik_graph", version="0.1.0")
-STORE = GraphStore()
+STORE = create_store()
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 

@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Shared graph backend: `Neo4jGraphStore` plus a `create_store()` factory selected via `ERLIK_GRAPH_BACKEND`. With `neo4j`, the MCP and FastAPI adapters read/write the same graph (LLM enriches, you inspect it live).
 - `BaseGraphStore` base class holding the store-agnostic `expand()` logic; `GraphStore` and `Neo4jGraphStore` share it.
-- 3 new free transforms: `domain_to_whois` (RDAP), `ipv4_to_geo` (ipwho.is), `email_to_breaches` (Have I Been Pwned, needs `HIBP_API_KEY`).
-- New entity types `organization`, `location`, `breach` with front-end colors.
+- 6 new free transforms: `domain_to_whois` (RDAP), `ipv4_to_geo` (ipwho.is), `email_to_breaches` (Have I Been Pwned, needs `HIBP_API_KEY`), `domain_to_wayback` (Wayback Machine), `ipv4_to_reverse_dns` (PTR), `email_to_gravatar` (Gravatar).
+- New entity types `organization`, `location`, `breach`, `archived_url` with front-end colors.
+- Offline `pytest` suite under `tests/` and a GitHub Actions CI workflow (`.github/workflows/ci.yml`) running import checks + tests on Python 3.11 and 3.12.
 
 ### Changed
 - Both adapters now build their store through `create_store()` instead of instantiating `GraphStore` directly.

@@ -4,6 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
 ![Type](https://img.shields.io/badge/OSINT-graph-black)
+[![CI](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml)
 
 > Ein Maltego-artiger OSINT-Link-Analyse-Graph mit **einer** geteilten Transform-Logik und **zwei** Oberflächen: einer visuellen FastAPI-+-Cytoscape-App **und** einem MCP-Server für LLM-gesteuerte Ermittlung.
 
@@ -25,7 +26,7 @@ Einen Transform einmal hinzufügen — und er erscheint in beiden.
 ## Funktionen
 
 - 🔗 **Entity/Transform/Graph**-Modell mit automatischer Knoten-Deduplizierung
-- 🧩 **10 Transforms von Haus aus** — DNS (A/MX/NS/TXT), Subdomains via Certificate Transparency (crt.sh), RDAP/WHOIS, IP-Geolocation, HIBP-Datenlecks, Shodan-Dienste, Username-Enumeration über 10 Plattformen
+- 🧩 **13 Transforms von Haus aus** — DNS (A/MX/NS/TXT), Reverse DNS, Subdomains via Certificate Transparency (crt.sh), RDAP/WHOIS, Wayback Machine, IP-Geolocation, HIBP-Datenlecks, Gravatar, Shodan-Dienste, Username-Enumeration über 10 Plattformen
 - 🖥️ **Visueller Graph** (Cytoscape.js): Knoten anklicken → passende Transforms ausführen → der Graph wächst
 - 🤖 **MCP-Adapter**, der jeden Transform als Tool für LLM-gesteuertes OSINT bereitstellt
 - ♻️ **Geteilter Kern** — ein `@transform`-Dekorator, beide Adapter greifen ihn automatisch auf
@@ -128,16 +129,22 @@ erlik_graph/
 │   └── factory.py        create_store() — waehlt Backend per Env
 ├── transforms/           die eigentliche Logik — hier waechst das System
 │   ├── dns_transforms.py
+│   ├── rdns_transforms.py
 │   ├── crtsh_transforms.py
 │   ├── whois_transforms.py
+│   ├── wayback_transforms.py
 │   ├── geo_transforms.py
 │   ├── breach_transforms.py
+│   ├── gravatar_transforms.py
 │   ├── shodan_transforms.py
 │   └── username_transforms.py
 ├── adapters/
 │   ├── api_server.py     FastAPI-Endpoints
 │   └── mcp_server.py     MCP-Tools
 └── web/index.html        Cytoscape-Oberflaeche
+
+tests/                    Offline-pytest-Suite (laeuft in CI)
+.github/workflows/ci.yml  Install + Import-Check + pytest auf 3.11 / 3.12
 ```
 
 ## Das Erlik-Portfolio

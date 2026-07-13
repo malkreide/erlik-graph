@@ -1,0 +1,132 @@
+# Erlik Graph
+
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Python](https://img.shields.io/badge/python-3.11+-blue)
+![Type](https://img.shields.io/badge/OSINT-graph-black)
+
+> Ein Maltego-artiger OSINT-Link-Analyse-Graph mit **einer** geteilten Transform-Logik und **zwei** Oberflächen: einer visuellen FastAPI-+-Cytoscape-App **und** einem MCP-Server für LLM-gesteuerte Ermittlung.
+
+[🇬🇧 English Version](README.md)
+
+Teil des **[Erlik](#das-erlik-portfolio)**-Portfolios quelloffener AI-OSINT-Tools.
+
+## Übersicht
+
+Erlik Graph baut Maltegos Kernidee nach — **Entities** (Knoten), verbunden durch **Transforms** (Funktionen, die eine Entity nehmen und verwandte zurückgeben), auf einem interaktiven **Graphen** — als kleines, hackbares Python-Projekt.
+
+Der Clou ist die Architektur: Die Transform-Logik wird **einmal** als schlichte Python-Funktion geschrieben und über **zwei Adapter** verfügbar gemacht, die sich denselben Graph-Store teilen:
+
+- **FastAPI + Cytoscape** — ein visueller, klickbarer Ermittlungs-Graph. *Du* steuerst, jeder Schritt ist deterministisch und nachvollziehbar.
+- **MCP** — dieselben Transforms als Tools, die ein LLM-Agent (z.B. Claude) autonom aufruft, um anzureichern und Spuren zu verfolgen.
+
+Einen Transform einmal hinzufügen — und er erscheint in beiden.
+
+## Funktionen
+
+- 🔗 **Entity/Transform/Graph**-Modell mit automatischer Knoten-Deduplizierung
+- 🧩 **7 Transforms von Haus aus** — DNS (A/MX/NS/TXT), Subdomains via Certificate Transparency (crt.sh), Shodan-Dienste, Username-Enumeration über 10 Plattformen
+- 🖥️ **Visueller Graph** (Cytoscape.js): Knoten anklicken → passende Transforms ausführen → der Graph wächst
+- 🤖 **MCP-Adapter**, der jeden Transform als Tool für LLM-gesteuertes OSINT bereitstellt
+- ♻️ **Geteilter Kern** — ein `@transform`-Dekorator, beide Adapter greifen ihn automatisch auf
+- 🔌 **Austauschbarer Speicher** — heute In-Memory-`networkx`, später Neo4j durch Neuimplementierung einer Klasse
+
+## Voraussetzungen
+
+- Python 3.11+
+- Optional: ein `SHODAN_API_KEY` für den Shodan-Transform
+
+## Installation
+
+```bash
+git clone https://github.com/malkreide/erlik-graph.git
+cd erlik-graph
+python -m venv .venv
+# Windows: .\.venv\Scripts\Activate.ps1   |   Unix: source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Verwendung
+
+### Variante A — visueller Graph (FastAPI)
+
+```bash
+python -m uvicorn erlik_graph.adapters.api_server:app --reload
+```
+
+http://127.0.0.1:8000 öffnen → Seed-Entity anlegen → Knoten anklicken → Transform ausführen → der Graph wächst.
+
+### Variante B — MCP (LLM-gesteuert)
+
+Server registrieren (siehe [.mcp.json](.mcp.json)). Die Transforms erscheinen als Tools (`domain_to_subdomains`, `username_to_profiles`, `get_graph`, …), und der Agent entscheidet selbst, welche Spuren er verfolgt.
+
+```jsonc
+{
+  "mcpServers": {
+    "erlik-graph": {
+      "command": "python",
+      "args": ["-m", "erlik_graph.adapters.mcp_server"],
+      "cwd": "/pfad/zu/erlik-graph"
+    }
+  }
+}
+```
+
+## Konfiguration
+
+| Variable | Zweck | Erforderlich |
+|---|---|---|
+| `SHODAN_API_KEY` | Aktiviert den `ipv4_to_services`-Transform | Nein (ohne Key liefert der Transform einen Hinweis) |
+
+## Neuen Transform hinzufügen
+
+1. Eine Funktion mit `@transform(name, input_type, description)` in einer Datei unter `erlik_graph/transforms/` schreiben.
+2. Diese Datei in `erlik_graph/transforms/__init__.py` importieren.
+
+Sie erscheint jetzt automatisch in **beiden** Adaptern.
+
+```python
+@transform("domain_to_ipv4", "domain", "Loest eine Domain zu ihren IPv4-Adressen auf.")
+def domain_to_ipv4(value: str, properties: dict) -> list[Entity]:
+    return [Entity(type="ipv4", value=ip, link_label="resolves_to")
+            for ip in query(value, "A")]
+```
+
+## Projektstruktur
+
+```
+erlik_graph/
+├── core/                 Datenmodell, Registry, Graph-Store
+│   ├── entity.py         Entity / Edge, Dedup-Schluessel
+│   ├── registry.py       @transform-Dekorator + Registry
+│   └── graph_store.py    networkx-Store, expand(), Cytoscape-Export
+├── transforms/           die eigentliche Logik — hier waechst das System
+│   ├── dns_transforms.py
+│   ├── crtsh_transforms.py
+│   ├── shodan_transforms.py
+│   └── username_transforms.py
+├── adapters/
+│   ├── api_server.py     FastAPI-Endpoints
+│   └── mcp_server.py     MCP-Tools
+└── web/index.html        Cytoscape-Oberflaeche
+```
+
+## Das Erlik-Portfolio
+
+**Erlik** — benannt nach dem Herrn der Unterwelt in der türkisch-mongolischen (tengristischen) Mythologie — ist eine wachsende Familie kleiner, fokussierter, quelloffener AI-OSINT-Tools. Jedes Tool lebt in seinem **eigenen** Repository und teilt sich das Topic `erlik` für die Auffindbarkeit. `erlik-graph` ist das Link-Analyse-Flaggschiff; weitere Tools (Scouts, Enricher, Monitore) kommen als separate Repos hinzu.
+
+## Rechtlicher Hinweis
+
+Nur gegen Systeme und Daten einsetzen, für die eine Berechtigung besteht. Beim Aggregieren personenbezogener Daten gilt die DSGVO und geltendes Recht.
+
+## Changelog
+
+Siehe [CHANGELOG.md](CHANGELOG.md).
+
+## Lizenz
+
+MIT License — siehe [LICENSE](LICENSE).
+
+## Autor
+
+Hayal Özkan · [@malkreide](https://github.com/malkreide)

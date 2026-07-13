@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Erlik Graph</title>
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; display: flex; height: 100vh; }
+  #side { width: 320px; padding: 16px; border-right: 1px solid #8884; overflow-y: auto; flex-shrink: 0; }
+  #cy { flex: 1; height: 100%; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; opacity: .6; margin: 20px 0 8px; }
+  label { display: block; margin: 6px 0 2px; font-size: 12px; opacity: .8; }
+  input, select, button { width: 100%; padding: 7px 9px; margin-bottom: 6px; border-radius: 6px;
+    border: 1px solid #8886; background: transparent; color: inherit; font: inherit; }
+  button { cursor: pointer; background: #4f7cff; color: #fff; border: none; font-weight: 600; }
+  button.sec { background: #8883; color: inherit; font-weight: 500; }
+  button:hover { filter: brightness(1.08); }
+  .tf { text-align: left; }
+  #sel { font-size: 12px; opacity: .75; word-break: break-all; min-height: 18px; }
+  #stats { font-size: 12px; opacity: .6; margin-top: 8px; }
+  .muted { opacity: .5; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="side">
+  <h1>🕸️ Erlik Graph</h1>
+
+  <h2>Seed-Entity</h2>
+  <label>Typ</label>
+  <select id="seedType">
+    <option value="domain">domain</option>
+    <option value="ipv4">ipv4</option>
+    <option value="username">username</option>
+    <option value="email">email</option>
+  </select>
+  <label>Wert</label>
+  <input id="seedVal" placeholder="z.B. example.com" />
+  <button onclick="seed()">Hinzufügen</button>
+
+  <h2>Ausgewählter Knoten</h2>
+  <div id="sel" class="muted">— nichts ausgewählt —</div>
+  <div id="tfList"></div>
+
+  <h2>Graph</h2>
+  <div id="stats" class="muted">0 Knoten, 0 Kanten</div>
+  <button class="sec" onclick="clearGraph()">Graph leeren</button>
+</div>
+<div id="cy"></div>
+
+<script>
+const API = "";
+const COLORS = { domain:"#4f7cff", ipv4:"#e0663b", username:"#9b59b6", email:"#16a085",
+  profile:"#9b59b6", service:"#e0663b", txt_record:"#888", note:"#c0392b", default:"#777" };
+
+const cy = cytoscape({
+  container: document.getElementById("cy"),
+  style: [
+    { selector: "node", style: {
+        "background-color": ele => COLORS[ele.data("etype")] || COLORS.default,
+        "label": "data(label)", "font-size": 10, "color": "#ccc",
+        "text-wrap": "wrap", "text-max-width": 120, "text-valign": "bottom",
+        "text-margin-y": 3, "width": 22, "height": 22 } },
+    { selector: "node:selected", style: { "border-width": 3, "border-color": "#fff" } },
+    { selector: "edge", style: {
+        "width": 1.5, "line-color": "#8887", "target-arrow-color": "#8887",
+        "target-arrow-shape": "triangle", "curve-style": "bezier",
+        "label": "data(label)", "font-size": 8, "color": "#999" } },
+  ],
+  layout: { name: "cose", animate: false },
+});
+
+let selected = null;
+
+cy.on("tap", "node", evt => {
+  selected = evt.target;
+  const type = selected.data("etype"), value = selected.data("label");
+  document.getElementById("sel").textContent = `${type}: ${value}`;
+  document.getElementById("sel").className = "";
+  loadTransforms(type, value);
+});
+
+async function loadTransforms(type, value) {
+  const all = await (await fetch(`${API}/api/transforms`)).json();
+  const box = document.getElementById("tfList");
+  box.innerHTML = "";
+  const applicable = all.filter(t => t.input_type === type);
+  if (!applicable.length) { box.innerHTML = '<div class="muted">Keine Transforms für diesen Typ.</div>'; return; }
+  for (const t of applicable) {
+    const b = document.createElement("button");
+    b.className = "tf sec"; b.textContent = "▶ " + t.name; b.title = t.description;
+    b.onclick = () => runTransform(type, value, t.name, b);
+    box.appendChild(b);
+  }
+}
+
+async function runTransform(type, value, name, btn) {
+  btn.disabled = true; btn.textContent = "… " + name;
+  const res = await (await fetch(`${API}/api/expand`, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ type, value, transform: name }) })).json();
+  mergeElements(res.new_nodes, res.new_edges);
+  updateStats(res.stats);
+  btn.disabled = false; btn.textContent = "▶ " + name;
+}
+
+function mergeElements(nodes, edges) {
+  const add = [];
+  (nodes||[]).forEach(n => { if (!cy.getElementById(n.key).length)
+    add.push({ data: { id: n.key, label: n.value, etype: n.type } }); });
+  (edges||[]).forEach(e => { const id = `${e.source}->${e.target}:${e.label}`;
+    if (!cy.getElementById(id).length)
+      add.push({ data: { id, source: e.source, target: e.target, label: e.label } }); });
+  if (add.length) { cy.add(add); cy.layout({ name: "cose", animate: false }).run(); }
+}
+
+async function seed() {
+  const type = document.getElementById("seedType").value;
+  const value = document.getElementById("seedVal").value.trim();
+  if (!value) return;
+  const res = await (await fetch(`${API}/api/seed`, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ type, value }) })).json();
+  if (!cy.getElementById(res.key).length) {
+    cy.add({ data: { id: res.key, label: value, etype: type } });
+    cy.layout({ name: "cose", animate: false }).run();
+  }
+  updateStats(res.stats);
+  document.getElementById("seedVal").value = "";
+}
+
+async function clearGraph() {
+  await fetch(`${API}/api/clear`, { method: "POST" });
+  cy.elements().remove();
+  document.getElementById("tfList").innerHTML = "";
+  document.getElementById("sel").textContent = "— nichts ausgewählt —";
+  updateStats({ nodes: 0, edges: 0 });
+}
+
+function updateStats(s) {
+  document.getElementById("stats").textContent = `${s.nodes} Knoten, ${s.edges} Kanten`;
+}
+
+// vorhandenen Graphen laden (falls Server schon Daten hat, z.B. via MCP befüllt)
+(async () => {
+  const g = await (await fetch(`${API}/api/graph`)).json();
+  if (g.elements.length) { cy.add(g.elements); cy.layout({ name: "cose", animate: false }).run(); }
+  updateStats(g.stats);
+})();
+</script>
+</body>
+</html>

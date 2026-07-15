@@ -6,7 +6,7 @@
 ![Type](https://img.shields.io/badge/OSINT-graph-black)
 [![CI](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml)
 
-> A Maltego-style OSINT link-analysis graph with one shared transform core and two front-ends: a visual FastAPI + Cytoscape app **and** an MCP server for LLM-driven investigation.
+> An OSINT link-analysis graph with one shared transform core and two front-ends: a visual FastAPI + Cytoscape app **and** an MCP server for LLM-driven investigation.
 
 [🇩🇪 Deutsche Version](README.de.md)
 
@@ -14,7 +14,7 @@ Part of the **[Erlik](#the-erlik-portfolio)** portfolio of open-source AI OSINT 
 
 ## Overview
 
-Erlik Graph rebuilds Maltego's core idea — **Entities** (nodes) connected by **Transforms** (functions that take one entity and return related ones) on an interactive **Graph** — as a small, hackable Python project.
+Erlik Graph implements the classic link-analysis workflow — **Entities** (nodes) connected by **Transforms** (functions that take one entity and return related ones) on an interactive **Graph** — as a small, hackable Python project.
 
 The point is the architecture: transform logic is written **once** as plain Python functions and exposed through **two adapters** that share the same graph store:
 

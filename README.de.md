@@ -6,7 +6,7 @@
 ![Type](https://img.shields.io/badge/OSINT-graph-black)
 [![CI](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/malkreide/erlik-graph/actions/workflows/ci.yml)
 
-> Ein Maltego-artiger OSINT-Link-Analyse-Graph mit **einer** geteilten Transform-Logik und **zwei** Oberflächen: einer visuellen FastAPI-+-Cytoscape-App **und** einem MCP-Server für LLM-gesteuerte Ermittlung.
+> Ein OSINT-Link-Analyse-Graph mit **einer** geteilten Transform-Logik und **zwei** Oberflächen: einer visuellen FastAPI-+-Cytoscape-App **und** einem MCP-Server für LLM-gesteuerte Ermittlung.
 
 [🇬🇧 English Version](README.md)
 
@@ -14,7 +14,7 @@ Teil des **[Erlik](#das-erlik-portfolio)**-Portfolios quelloffener AI-OSINT-Tool
 
 ## Übersicht
 
-Erlik Graph baut Maltegos Kernidee nach — **Entities** (Knoten), verbunden durch **Transforms** (Funktionen, die eine Entity nehmen und verwandte zurückgeben), auf einem interaktiven **Graphen** — als kleines, hackbares Python-Projekt.
+Erlik Graph setzt die klassische Idee der Link-Analyse um — **Entities** (Knoten), verbunden durch **Transforms** (Funktionen, die eine Entity nehmen und verwandte zurückgeben), auf einem interaktiven **Graphen** — als kleines, hackbares Python-Projekt.
 
 Der Clou ist die Architektur: Die Transform-Logik wird **einmal** als schlichte Python-Funktion geschrieben und über **zwei Adapter** verfügbar gemacht, die sich denselben Graph-Store teilen:
 
